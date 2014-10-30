@@ -1,15 +1,15 @@
-if [ -z "$PUUSH_API_KEY" ]
+if [ -z "$1" ]
 then
-  echo "Set the variable PUUSH_API_KEY in $0 or with 'export PUUSH_API_KEY=\"apiKeyHere\""
+  echo "No API key"
   exit 1
-elif [ -z "$1" ]
+elif [ -z "$2" ]
 then
   echo "Specify a file to be uploaded"
   exit 2
-elif ! [ -f "$1" -a -r "$1" ]
+elif ! [ -f "$2" -a -r "$2" ]
 then
-  echo "File '$1' is not valid (it is not a file or it is not readable)"
+  echo "File '$2' is not valid (it is not a file or it is not readable)"
   exit 3
 fi
 
-curl "https://puush.me/api/up" -# -F "k=$PUUSH_API_KEY" -F "z=poop" -F "f=@$1"
+curl "https://puush.me/api/up" -# -F "k=$1" -F "z=poop" -F "f=@$2"

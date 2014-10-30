@@ -17,7 +17,7 @@ class PuushIndicator:
             with open(os.path.expanduser("~/.puush.rc"), "r") as file:
                 line = file.readline()
                 if line[-1] == '\n':
-                    line.rstrip('\n')
+                    line = line.rstrip('\n')
                 self.key = line 
         except: 
             print "Error while getting API key"
@@ -76,7 +76,7 @@ class PuushIndicator:
             subprocess.Popen(['notify-send', "Puush", msg]) 
         
     def puush(self,filepath,delete=False):
-            subprocess.call(["bash", "puush.sh", filepath ], stdout=open("curlout", "w"))
+            subprocess.call(["bash", "puush.sh", self.key, filepath ], stdout=open("curlout", "w"))
             status = None
 
             with open("curlout", "r") as file:
@@ -85,7 +85,7 @@ class PuushIndicator:
             code = status[0]
         
             if int(code) != 0:
-                notify("The upload failed!")
+                self.notify("The upload failed!")
                 return
 
             url = status[1]
