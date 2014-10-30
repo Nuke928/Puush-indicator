@@ -22,9 +22,9 @@ class PuushIndicator:
             print "Error while getting API key"
             exit(0)
         
-        self.ind = appindicator.Indicator ("example-simple-client", "indicator-messages", appindicator.CATEGORY_APPLICATION_STATUS)
-        self.ind.set_status (appindicator.STATUS_ACTIVE)
-        self.ind.set_attention_icon ("indicator-messages-new")
+        self.ind = appindicator.Indicator("Puush", "indicator-messages", appindicator.CATEGORY_APPLICATION_STATUS)
+        self.ind.set_status(appindicator.STATUS_ACTIVE)
+        self.ind.set_attention_icon("indicator-messages-new")
         self.ind.set_icon_theme_path(os.path.dirname(os.path.realpath(__file__)))
         self.ind.set_icon("icon")
 
@@ -76,13 +76,11 @@ class PuushIndicator:
         
     def puush(self,filepath,delete=False):
             subprocess.call(["bash", "puush.sh", self.key, filepath ], stdout=open("/tmp/puush_curlout", "w"))
-            status = None
 
             with open("/tmp/puush_curlout", "r") as file:
                 status = file.read().split(',')
 
             code = status[0]
-        
             if int(code) != 0:
                 self.notify("The upload failed!")
                 return
@@ -102,8 +100,6 @@ class PuushIndicator:
         subprocess.call(["xdg-open", "http://puush.me/login/go/?k=%s" % str(self.key) ])
 
     def upload(self, widget, data=None):
-        filename = ""
-
         dialog=gtk.FileChooserDialog(title="Select a File to puush", action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
 
@@ -118,24 +114,24 @@ class PuushIndicator:
         self.puush(filename)
 
     def uploadClipboard(self, widget, data=None):
-        clip = subprocess.Popen(["xclip","-selection", "clipboard", "-o"],stdout=subprocess.PIPE).communicate()[0]
+        clip = subprocess.Popen(["xclip","-selection", "clipboard", "-o"], stdout=subprocess.PIPE).communicate()[0]
         if os.path.isfile(clip):
             self.puush(clip)
         else:
             with open("/tmp/puush_clip", "w") as file:
                 file.write(clip)
-            self.puush("/tmp/puush_clip",delete=True)
+            self.puush("/tmp/puush_clip", delete=True)
 
     def uploadDesktopScreenshot(self, widget, data=None):
         w = gtk.gdk.get_default_root_window()
         sz = w.get_size()
-        pb = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,False,8,sz[0],sz[1])
-        pb = pb.get_from_drawable(w,w.get_colormap(),0,0,0,0,sz[0],sz[1])
-        if (pb != None):
-            pb.save("/tmp/puush_screenshot.png","png")
+        pb = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, False, 8, sz[0], sz[1])
+        pb = pb.get_from_drawable(w, w.get_colormap(), 0, 0, 0, 0, sz[0], sz[1])
+        if pb != None:
+            pb.save("/tmp/puush_screenshot.png", "png")
         else:
             return
-        self.puush("/tmp/puush_screenshot.png",delete=True)
+        self.puush("/tmp/puush_screenshot.png", delete=True)
 
     def quit(self, widget, data=None):
         gtk.main_quit()
