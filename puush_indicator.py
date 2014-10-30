@@ -13,11 +13,16 @@ import sys
 class PuushIndicator:
     key=None
     def __init__(self):
-        self.key = os.getenv("PUUSH_API_KEY")
-        if self.key is None:
-            print("Missing API key")
-            exit(1)
-
+        try: 
+            with open(os.path.expanduser("~/.puush.rc"), "r") as file:
+                line = file.readline()
+                if line[-1] == '\n':
+                    line.rstrip('\n')
+                self.key = line 
+        except: 
+            print "Error while getting API key"
+            exit(0)
+        
         self.ind = appindicator.Indicator ("example-simple-client", "indicator-messages", appindicator.CATEGORY_APPLICATION_STATUS)
         self.ind.set_status (appindicator.STATUS_ACTIVE)
         self.ind.set_attention_icon ("indicator-messages-new")

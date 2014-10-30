@@ -10,12 +10,10 @@ Simple appindicator for GTK that uses puush.
 
 ## Usage
 
+Add your puush API key in ~/.puush.rc in one line.
+
+
 Run puush_indicator.py
-
-
-You need to set your puush API key in PUUSH_API_KEY.
-Preferably add this to your .bashrc:
-> export PUUSH_API_KEY=maikey
 
 ## Todo
 
