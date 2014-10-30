@@ -76,10 +76,10 @@ class PuushIndicator:
             subprocess.Popen(['notify-send', "Puush", msg]) 
         
     def puush(self,filepath,delete=False):
-            subprocess.call(["bash", "puush.sh", self.key, filepath ], stdout=open("curlout", "w"))
+            subprocess.call(["bash", "puush.sh", self.key, filepath ], stdout=open("/tmp/puush_curlout", "w"))
             status = None
 
-            with open("curlout", "r") as file:
+            with open("/tmp/puush_curlout", "r") as file:
                 status = file.read().split(',')
 
             code = status[0]
@@ -93,7 +93,7 @@ class PuushIndicator:
             subprocess.Popen(["xdg-open", url]) 
             if delete:
                 os.system("rm %s" % filepath)
-            os.system("rm %s" % "curlout")
+            os.system("rm %s" % "/tmp/puush_curlout")
 
     def captureArea(self, widget, data=None):
         subprocess.call(["scrot", "-s", "/tmp/puush_screenshot.png"]) 
