@@ -50,6 +50,11 @@ class PuushIndicator:
         itemArea.show()
         self.menu.append(itemArea)
 
+        itemClipboard = gtk.MenuItem("Upload clipboard")
+        itemClipboard.connect("activate", self.uploadClipboard)
+        itemClipboard.show()
+        self.menu.append(itemClipboard)
+
         item = gtk.MenuItem("Upload file")
         item.connect("activate", self.upload)
         item.show()
@@ -91,8 +96,8 @@ class PuushIndicator:
             os.system("rm %s" % "curlout")
 
     def captureArea(self, widget, data=None):
-        subprocess.call(["scrot", "-s", "screenshot.png"]) 
-        self.puush("screenshot.png", delete=True)
+        subprocess.call(["scrot", "-s", "/tmp/puush_screenshot.png"]) 
+        self.puush("/tmp/puush_screenshot.png", delete=True)
 
     def showAccount(self, widget, data=None):
         subprocess.call(["xdg-open", "http://puush.me/login/go/?k=%s" % str(self.key) ])
@@ -113,8 +118,14 @@ class PuushIndicator:
         dialog.destroy() 
         self.puush(filename)
 
-    def quit(self, widget, data=None):
-        gtk.main_quit()
+    def uploadClipboard(self, widget, data=None):
+        clip = subprocess.Popen(["xclip","-selection", "clipboard", "-o"],stdout=subprocess.PIPE).communicate()[0]
+        if os.path.isfile(clip):
+            self.puush(clip)
+        else:
+            with open("/tmp/puush_clip", "w") as file:
+                file.write(clip)
+            self.puush("/tmp/puush_clip",delete=True)
 
     def uploadDesktopScreenshot(self, widget, data=None):
         w = gtk.gdk.get_default_root_window()
@@ -126,6 +137,9 @@ class PuushIndicator:
         else:
             return
         self.puush("screenshot.png",delete=True)
+
+    def quit(self, widget, data=None):
+        gtk.main_quit()
 
 def main():
     gtk.main()
