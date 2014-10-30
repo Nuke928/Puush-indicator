@@ -11,7 +11,6 @@ import os
 import sys
 
 class PuushIndicator:
-    key=None
     def __init__(self):
         try: 
             with open(os.path.expanduser("~/.puush.rc"), "r") as file:
