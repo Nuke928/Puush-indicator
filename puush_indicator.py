@@ -132,10 +132,10 @@ class PuushIndicator:
         pb = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,False,8,sz[0],sz[1])
         pb = pb.get_from_drawable(w,w.get_colormap(),0,0,0,0,sz[0],sz[1])
         if (pb != None):
-            pb.save("screenshot.png","png")
+            pb.save("/tmp/puush_screenshot.png","png")
         else:
             return
-        self.puush("screenshot.png",delete=True)
+        self.puush("/tmp/puush_screenshot.png",delete=True)
 
     def quit(self, widget, data=None):
         gtk.main_quit()
