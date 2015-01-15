@@ -1,145 +1,142 @@
 #!/usr/bin/env python
 
-from threading import Thread
-from time import sleep
-import subprocess
-import pygtk
-pygtk.require('2.0')
-import gtk
-import appindicator
-import os
-import sys
+import appindicator, gtk, os, requests, subprocess
 
-class PuushIndicator:
-    def __init__(self):
-        try: 
-            with open(os.path.expanduser("~/.puush.rc"), "r") as file:
-                line = file.readline()
-                if line[-1] == '\n':
-                    line = line.rstrip('\n')
-                self.key = line 
-        except: 
-            print "Error while getting API key"
-            exit(0)
-        
-        self.ind = appindicator.Indicator("Puush", "indicator-messages", appindicator.CATEGORY_APPLICATION_STATUS)
-        self.ind.set_status(appindicator.STATUS_ACTIVE)
-        self.ind.set_attention_icon("indicator-messages-new")
-        self.ind.set_icon_theme_path(os.path.dirname(os.path.realpath(__file__)))
-        self.ind.set_icon("icon")
+key = None
+indicator = None
+menu = None
 
-        self.menu = gtk.Menu()
+def init_indicator():
+        global indicator, menu
+        indicator = appindicator.Indicator('Puush', 'indicator-messages', appindicator.CATEGORY_APPLICATION_STATUS)
+        indicator.set_status(appindicator.STATUS_ACTIVE)
+        indicator.set_attention_icon('indicator-messages-new')
+        indicator.set_icon_theme_path(os.path.dirname(os.path.realpath(__file__)))
+        indicator.set_icon('icon')
 
-        myAccount = gtk.MenuItem("My account")
-        myAccount.connect("activate", self.showAccount)
-        myAccount.show()
-        self.menu.append(myAccount)
+        menu = gtk.Menu()
+
+        item_account = gtk.MenuItem('My account')
+        item_account.connect('activate', show_account)
+        item_account.show()
+        menu.append(item_account)
 
         separator = gtk.SeparatorMenuItem()
         separator.show()
-        self.menu.append(separator)
+        menu.append(separator)
 
-        itemDesktop = gtk.MenuItem("Capture desktop")
-        itemDesktop.connect("activate", self.uploadDesktopScreenshot)
-        itemDesktop.show()
-        self.menu.append(itemDesktop)
+        item_capture_area = gtk.MenuItem('Capture Area')
+        item_capture_area.connect('activate', capture_area)
+        item_capture_area.show()
+        menu.append(item_capture_area)
 
-        itemArea = gtk.MenuItem("Capture area")
-        itemArea.connect("activate", self.captureArea)
-        itemArea.show()
-        self.menu.append(itemArea)
+        item_upload = gtk.MenuItem('Upload')
+        item_upload.connect('activate', upload)
+        item_upload.show()
+        menu.append(item_upload)
 
-        itemClipboard = gtk.MenuItem("Upload clipboard")
-        itemClipboard.connect("activate", self.uploadClipboard)
-        itemClipboard.show()
-        self.menu.append(itemClipboard)
+        item_desktop_screenshot = gtk.MenuItem('Desktop Screenshot')
+        item_desktop_screenshot.connect('activate', desktop_screenshot)
+        item_desktop_screenshot.show()
+        menu.append(item_desktop_screenshot)
 
-        item = gtk.MenuItem("Upload file")
-        item.connect("activate", self.upload)
-        item.show()
-        self.menu.append(item)
+        item_upload_clipboard = gtk.MenuItem('Upload Clipboard')
+        item_upload_clipboard.connect('activate', upload_clipboard)
+        item_upload_clipboard.show()
+        menu.append(item_upload_clipboard)
+
 
         separator = gtk.SeparatorMenuItem()
         separator.show()
-        self.menu.append(separator)
+        menu.append(separator)
 
-        image = gtk.ImageMenuItem(gtk.STOCK_QUIT)
-        image.connect("activate", self.quit)
-        image.show()
-        self.menu.append(image)
-                    
-        self.menu.show()
-        self.ind.set_menu(self.menu)
+        item_quit = gtk.ImageMenuItem(gtk.STOCK_QUIT)
+        item_quit.connect('activate', quit)
+        item_quit.show()
+        menu.append(item_quit)
 
-    def notify(self, msg):
-            subprocess.Popen(['notify-send', "Puush", msg]) 
-        
-    def puush(self,filepath,delete=False):
-            subprocess.call(["bash", "puush.sh", self.key, filepath ], stdout=open("/tmp/puush_curlout", "w"))
+        menu.show()
+        indicator.set_menu(menu)
 
-            with open("/tmp/puush_curlout", "r") as file:
-                status = file.read().split(',')
-
-            code = status[0]
-            if int(code) != 0:
-                self.notify("The upload failed!")
-                return
-
-            url = status[1]
-            self.notify("File uploaded! %s" % url)
-            subprocess.Popen(["xdg-open", url]) 
-            if delete:
-                os.system("rm %s" % filepath)
-            os.system("rm %s" % "/tmp/puush_curlout")
-
-    def captureArea(self, widget, data=None):
-        subprocess.call(["scrot", "-s", "/tmp/puush_screenshot.png"]) 
-        self.puush("/tmp/puush_screenshot.png", delete=True)
-
-    def showAccount(self, widget, data=None):
-        subprocess.call(["xdg-open", "http://puush.me/login/go/?k=%s" % str(self.key) ])
-
-    def upload(self, widget, data=None):
-        dialog=gtk.FileChooserDialog(title="Select a File to puush", action=gtk.FILE_CHOOSER_ACTION_OPEN,
-            buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
-
-        response = dialog.run()
-                
-        if response == gtk.RESPONSE_OK:
-            filename = dialog.get_filename()
-        elif response == gtk.RESPONSE_CANCEL:
+def desktop_screenshot(indicator):
+        window = gtk.gdk.get_default_root_window()
+        size = window.get_size()
+        pixelBuffer = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, False, 8, size[0], size[1])
+        pixelBuffer = pixelBuffer.get_from_drawable(window, window.get_colormap(), 0, 0, 0, 0, size[0], size[1])
+        if pixelBuffer is not None:
+            pixelBuffer.save("/tmp/puush_screenshot.png", "png")
+        else:
+            notify('Could not take screenshot!')
             return
 
-        dialog.destroy() 
-        self.puush(filename)
+        puush('/tmp/puush_screenshot.png')
+        os.remove('/tmp/puush_screenshot.png')
 
-    def uploadClipboard(self, widget, data=None):
-        clip = subprocess.Popen(["xclip","-selection", "clipboard", "-o"], stdout=subprocess.PIPE).communicate()[0]
+def upload_clipboard(indicator):
+        clip = subprocess.Popen(["xclip", "-selection", "clipboard", "-o"], stdout=subprocess.PIPE).communicate()[0]
+        # If the contained clip data is a link to a file, puush that
         if os.path.isfile(clip):
-            self.puush(clip)
+            puush(clip)
+        # Else write the clip data to a file and then puush it
         else:
             with open("/tmp/puush_clip", "w") as file:
                 file.write(clip)
-            self.puush("/tmp/puush_clip", delete=True)
+            puush("/tmp/puush_clip")
+            os.remove('/tmp/puush_clip')
 
-    def uploadDesktopScreenshot(self, widget, data=None):
-        w = gtk.gdk.get_default_root_window()
-        sz = w.get_size()
-        pb = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, False, 8, sz[0], sz[1])
-        pb = pb.get_from_drawable(w, w.get_colormap(), 0, 0, 0, 0, sz[0], sz[1])
-        if pb != None:
-            pb.save("/tmp/puush_screenshot.png", "png")
+
+def capture_area(indicator):
+        subprocess.call(['scrot', '-s', '/tmp/puush_screenshot.png']) 
+        puush('/tmp/puush_screenshot.png')
+        os.remove('/tmp/puush_screenshot.png')
+
+def upload(self):
+        dialog = gtk.FileChooserDialog(title='Select a file to puush', action=gtk.FILE_CHOOSER_ACTION_OPEN, buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+        response = dialog.run()
+
+        if response == gtk.RESPONSE_OK:
+                filename = dialog.get_filename()
         else:
-            return
-        self.puush("/tmp/puush_screenshot.png", delete=True)
+                return
 
-    def quit(self, widget, data=None):
+        dialog.destroy()
+        puush(filename)
+
+def notify(message):
+        subprocess.Popen(['notify-send', 'Puush', message])
+
+def show_account(indicator):
+        global key
+        subprocess.call(["xdg-open", "http://puush.me/login/go/?k=%s" % str(key) ])
+
+def quit(indicator):
         gtk.main_quit()
 
+def puush(filepath):
+        global key
+        data = {'z': 'poop', 'k': key}
+        files = {'f': open(filepath, 'rb')}
+        r = requests.post('http://puush.me/api/up', data=data, files=files)
+        response = r.text.split(',')
+        statusCode = int(response[0])
+
+        if statusCode != 0:
+                notify('The upload failed!')
+                return
+        
+        notify('Puushed! %s' % response[1])
+        subprocess.Popen(['xdg-open', response[1]])
+
 def main():
-    gtk.main()
-    return 0
+        global key
+        key = os.getenv('PUUSH_API_KEY')
+
+        if key is None:
+                print('Missing the API key!')
+                return
+
+        init_indicator()
+        gtk.main() 
 
 if __name__ == "__main__":
-    indicator = PuushIndicator()
-    main()
+        main()

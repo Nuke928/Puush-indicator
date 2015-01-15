@@ -1,6 +1,6 @@
 # Puush indicator
 
-Simple appindicator for GTK that uses puush.
+Simple appindicator for GTK that emulates the puush's client functionality.
 
 ## Requirements
 
@@ -10,12 +10,8 @@ Simple appindicator for GTK that uses puush.
 
 ## Usage
 
-Add your puush API key in ~/.puush.rc in one line.
+Store your API key in the PUUSH_API_KEY environment variable.
 
 
-Run puush_indicator.py
+Then run puush_indicator.py
 
-## Todo
-
-The upload functions need to run in a seperate thread.
-Somehow though subprocess.call blocks the thread until the other thread is finished?
