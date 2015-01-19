@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import appindicator, gtk, os, requests, subprocess
+import appindicator, gtk, os, requests, subprocess, sys
 
 key = None
 indicator = None
@@ -133,6 +133,10 @@ def main():
 
         if key is None:
                 print('Missing the API key!')
+                return
+
+        if len(sys.argv) == 2:
+                puush(sys.argv[1])
                 return
 
         init_indicator()
