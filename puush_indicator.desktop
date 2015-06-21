@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Name=Puush Indicator
+GenericName=Puush Indicator
+Comment=Upload screenshots and pictures instantly
+Path=/home/gian/puush-indicator
+Exec=python /home/gian/puush-indicator/puush_indicator.py
+Icon=/home/gian/puush-indicator/icon.png
+Type=Application
+Terminal=False
+Categories=Utility;Application

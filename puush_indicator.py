@@ -1,10 +1,42 @@
 #!/usr/bin/env python
 
-import appindicator, gtk, os, requests, subprocess, sys
+import appindicator, atexit, gtk, os, requests, subprocess, sys
 
 key = None
 indicator = None
 menu = None
+
+
+def response_to_dialog(entry, dialog, response):
+	dialog.response(response)
+
+def ask_for_apikey():
+	#base this on a message dialog
+	dialog = gtk.MessageDialog(
+		None,
+		gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+		gtk.MESSAGE_QUESTION,
+		gtk.BUTTONS_OK_CANCEL,
+		None)
+	dialog.set_markup('Please enter your API key that can be found under puush.me/account')
+	#create the text input field
+	entry = gtk.Entry()
+	#allow the user to press enter to do ok
+	entry.connect("activate", response_to_dialog, dialog, gtk.RESPONSE_OK)
+	#create a horizontal box to pack the entry and a label
+	hbox = gtk.HBox()
+	hbox.pack_start(gtk.Label("Name:"), False, 5, 5)
+	hbox.pack_end(entry)
+	#some secondary text
+	dialog.format_secondary_markup("The API key will be saved in your home directory")
+	#add it and show it
+	dialog.vbox.pack_end(hbox, True, True, 0)
+	dialog.show_all()
+	#go go go
+	dialog.run()
+	text = entry.get_text()
+	dialog.destroy()
+	return text
 
 def init_indicator():
         global indicator, menu
@@ -127,13 +159,50 @@ def puush(filepath):
         notify('Puushed! %s' % response[1])
         subprocess.Popen(['xdg-open', response[1]])
 
-def main():
-        global key
+def find_key():
+	key = None
+	try:
+		with open('%s/.puushrc' % os.path.expanduser('~'), 'r') as file:
+			key = file.read()	
+
+	except Exception as e:
+		print e	
+
+	if key is not None or key is not "":
+		return key
+
         key = os.getenv('PUUSH_API_KEY')
+	return key	
+
+def save_key(key):
+	with open('%s/.puushrc' % os.path.expanduser('~'), 'w') as file:
+		file.write(key)	
+
+
+lockfile = '%s/.puushlock' % os.path.expanduser('~')
+
+def remove_lock():
+	os.remove(lockfile)
+
+def main():
+	if os.path.isfile(lockfile):
+		return
+	else:
+		open(lockfile, 'a').close()	
+
+
+	atexit.register(remove_lock)
+
+        global key
+        key = find_key() 
 
         if key is None:
-                print('Missing the API key!')
-                return
+		key = ask_for_apikey()
+		if key is None or key is "":
+			return
+
+		save_key(key)
+
 
         if len(sys.argv) == 2:
                 puush(sys.argv[1])
